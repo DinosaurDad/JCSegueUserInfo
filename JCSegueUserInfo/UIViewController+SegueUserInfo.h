@@ -28,5 +28,6 @@
 @interface UIViewController (SegueUserInfo)
 
 - (void)performSegueWithIdentifier:(NSString *)identifier sender:(id)sender userInfo:(NSDictionary*) userInfo NS_AVAILABLE_IOS(5_0);
+- (void)performSegueWithIdentifier:(NSString *)identifier sender:(id)sender userInfo:(NSDictionary*) userInfo autoForward:(BOOL)autoForward NS_AVAILABLE_IOS(5_0);
 
 @end

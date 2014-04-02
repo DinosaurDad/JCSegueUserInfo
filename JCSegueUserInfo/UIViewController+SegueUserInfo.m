@@ -31,6 +31,7 @@ static BOOL __segue_swizzled = NO;
 
 @interface UIViewController (SegueUserInfoPrivate)
 @property (nonatomic, strong, readonly) NSMutableDictionary *__segueUserInfoDictionary;
+@property (nonatomic, assign) BOOL __segueUserInfoAutoForward;
 - (void)__segue_user_info_prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender;
 - (void)__segue_user_info_original_prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender;
 @end
@@ -38,10 +39,12 @@ static BOOL __segue_swizzled = NO;
 @implementation UIViewController (SegueUserInfo)
 
 SYNTHESIZE_ASC_OBJ_LAZY(__segueUserInfoDictionary, NSMutableDictionary)
+SYNTHESIZE_ASC_PRIMITIVE(__segueUserInfoAutoForward, __setSegueUserInfoAutoForward, BOOL)
 
 - (void)performSegueWithIdentifier:(NSString *)identifier
                             sender:(id)sender
                           userInfo:(NSDictionary *)userInfo
+                       autoForward:(BOOL)autoForward
 {
   if (!__segue_swizzled) {
     EXT_SWIZZLE_INSTANCE_METHODS(UIViewController,
@@ -52,14 +55,30 @@ SYNTHESIZE_ASC_OBJ_LAZY(__segueUserInfoDictionary, NSMutableDictionary)
   }
 
   [self.__segueUserInfoDictionary setValue:userInfo forKey:identifier];
+  [self __setSegueUserInfoAutoForward:autoForward];
   [self performSegueWithIdentifier:identifier sender:sender];
+}
+
+- (void)performSegueWithIdentifier:(NSString *)identifier
+                            sender:(id)sender
+                          userInfo:(NSDictionary *)userInfo
+{
+  [self performSegueWithIdentifier:identifier sender:sender userInfo:userInfo autoForward:NO];
 }
 
 - (void)__segue_user_info_prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender {
   NSAssert(__segue_swizzled, @"Not swizzled");
   NSDictionary *userInfo = [self.__segueUserInfoDictionary valueForKey:segue.identifier];
   if (userInfo) {
-    [segue.destinationViewController setValuesForKeysWithDictionary:userInfo];
+    UIViewController *targetController = nil;
+    if (self.__segueUserInfoAutoForward && [segue.destinationViewController isKindOfClass:[UINavigationController class]]) {
+      UINavigationController *nav = (UINavigationController *)segue.destinationViewController;
+      targetController = nav.viewControllers[0];
+    }
+    else {
+      targetController = segue.destinationViewController;
+    }
+    [targetController setValuesForKeysWithDictionary:userInfo];
     [self.__segueUserInfoDictionary removeObjectForKey:segue.identifier];
   }
   [self __segue_user_info_original_prepareForSegue:segue sender:sender];
