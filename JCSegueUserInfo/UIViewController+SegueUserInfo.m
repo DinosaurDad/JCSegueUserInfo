@@ -24,8 +24,8 @@
 //  SOFTWARE.
 
 #import "UIViewController+SegueUserInfo.h"
-#import "EXTSwizzle.h"
 #import "ObjcAssociatedObjectHelpers.h"
+#import "JRSwizzle.h"
 
 static BOOL __segue_swizzled = NO;
 
@@ -33,7 +33,6 @@ static BOOL __segue_swizzled = NO;
 @property (nonatomic, strong, readonly) NSMutableDictionary *__segueUserInfoDictionary;
 @property (nonatomic, assign) BOOL __segueUserInfoAutoForward;
 - (void)__segue_user_info_prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender;
-- (void)__segue_user_info_original_prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender;
 @end
 
 @implementation UIViewController (SegueUserInfo)
@@ -47,10 +46,11 @@ SYNTHESIZE_ASC_PRIMITIVE(__segueUserInfoAutoForward, __setSegueUserInfoAutoForwa
                        autoForward:(BOOL)autoForward
 {
   if (!__segue_swizzled) {
-    EXT_SWIZZLE_INSTANCE_METHODS(UIViewController,
-                                 prepareForSegue:sender:,
-                                 __segue_user_info_prepareForSegue:sender:,
-                                 __segue_user_info_original_prepareForSegue:sender:);
+    NSError *error = nil;
+    [UIViewController jr_swizzleMethod:@selector(prepareForSegue:sender:)
+                            withMethod:@selector(__segue_user_info_prepareForSegue:sender:)
+                                 error:&error];
+    NSAssert(!error, error.localizedDescription);
     __segue_swizzled = YES;
   }
 
@@ -81,7 +81,7 @@ SYNTHESIZE_ASC_PRIMITIVE(__segueUserInfoAutoForward, __setSegueUserInfoAutoForwa
     [targetController setValuesForKeysWithDictionary:userInfo];
     [self.__segueUserInfoDictionary removeObjectForKey:segue.identifier];
   }
-  [self __segue_user_info_original_prepareForSegue:segue sender:sender];
+  [self __segue_user_info_prepareForSegue:segue sender:sender];
 }
 
 @end
